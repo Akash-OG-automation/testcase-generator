@@ -1,6 +1,8 @@
 // src/pages/GeneratorPage.tsx
 import { useState } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Props {
     apps: string[];
@@ -114,13 +116,37 @@ export default function GeneratorPage({ apps }: Props) {
                 >
                     {loading ? 'Generating... (this may take 10-60s)' : 'Generate Test Cases'}
                 </button>
+                {loading && (
+                    <div className="mt-12 flex flex-col items-center justify-center py-20">
+                        <div className="relative">
+                            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+                            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-cyan-400 rounded-full animate-spin animation-delay-75"></div>
+                        </div>
+                        <p className="mt-8 text-xl font-medium text-gray-700">
+                            Generating detailed test cases...
+                        </p>
+                        <p className="mt-2 text-sm text-gray-500">
+                            This may take 30–90 seconds depending on complexity
+                        </p>
+                    </div>
+                )}
 
                 {result && (
-                    <div className="mt-8">
-                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Generated Test Cases</h3>
-                        <pre className="bg-gray-100 p-6 rounded-lg overflow-x-auto text-sm whitespace-pre-wrap">
-                            {result}
-                        </pre>
+                    <div className="mt-12">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-6">Generated Test Cases</h3>
+                        <div className="bg-white rounded-xl shadow-lg p-8 prose prose-lg max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {result}
+                            </ReactMarkdown>
+                        </div>
+
+                        {/* Optional: Copy button */}
+                        <button
+                            onClick={() => navigator.clipboard.writeText(result)}
+                            className="mt-6 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition"
+                        >
+                            📋 Copy to Clipboard
+                        </button>
                     </div>
                 )}
             </div>

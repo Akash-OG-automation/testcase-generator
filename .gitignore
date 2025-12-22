@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+jspm_packages/
+
+# TypeScript build outputs
+*.tsbuildinfo
+dist/
+build/
+
+# Environment variables (for API keys, secrets)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Logs and debug
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Caches and temp files
+.npm
+.yarn/cache
+.yarn/unplugged
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Test coverage
+coverage/
+.nyc_output
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

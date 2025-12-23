@@ -27,21 +27,18 @@ export default function GeneratorPage({ apps }: Props) {
 
         try {
             const res = await axios.post('http://localhost:4000/api/generate', {
-                userStory,
+                userStory: userStory.trim(),
                 appName,
                 complexity,
                 outputFormat,
             });
             setResult(res.data.data);
-        } catch (err: unknown) {  // ← Change 'any' to 'unknown'
-            // Now, to safely access err.message or err.response:
+        } catch (err: unknown) {
             let errorMessage = 'An unknown error occurred.';
 
             if (err instanceof Error) {
                 errorMessage = err.message;
-            } else if (typeof err === 'string') {
-                errorMessage = err;
-            } else if (axios.isAxiosError(err)) {  // Special check for Axios errors
+            } else if (axios.isAxiosError(err)) {
                 errorMessage = err.response?.data?.error || err.message || 'Network error';
             }
 
@@ -52,42 +49,55 @@ export default function GeneratorPage({ apps }: Props) {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">Generate Test Cases</h2>
+        <div className="w-full">
+            <h2 className="text-3xl font-bold text-gray-800 mb-10 text-center lg:text-left">
+                Generate Test Cases  {/* or "Admin Panel: Manage Applications" */}
+            </h2>
 
-            <div className="bg-white rounded-lg shadow-md p-8 space-y-6">
+            <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12 space-y-10 w-full">
+                {/* Application Selector */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Application</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Application
+                    </label>
                     <select
                         value={appName}
                         onChange={(e) => setAppName(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-transparent transition text-base"
                     >
                         <option value="">-- Select an Application --</option>
                         {apps.map((app) => (
-                            <option key={app} value={app}>{app}</option>
+                            <option key={app} value={app}>
+                                {app}
+                            </option>
                         ))}
                     </select>
                 </div>
 
+                {/* User Story Input */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">User Story / Change Request</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                        User Story / Change Request
+                    </label>
                     <textarea
                         value={userStory}
                         onChange={(e) => setUserStory(e.target.value)}
                         rows={8}
                         placeholder="As a user, I want to..."
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        className="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-transparent resize-none font-sans text-base leading-relaxed"
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Complexity & Format */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Model Complexity</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                            Model Complexity
+                        </label>
                         <select
                             value={complexity}
                             onChange={(e) => setComplexity(e.target.value as 'low' | 'medium' | 'high')}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                            className="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 text-base"
                         >
                             <option value="low">Low (Fastest)</option>
                             <option value="medium">Medium (Balanced)</option>
@@ -96,11 +106,13 @@ export default function GeneratorPage({ apps }: Props) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Output Format</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                            Output Format
+                        </label>
                         <select
                             value={outputFormat}
                             onChange={(e) => setOutputFormat(e.target.value as 'text' | 'excel' | 'pdf')}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                            className="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 text-base"
                         >
                             <option value="text">Plain Text</option>
                             <option value="excel">Excel (.xlsx)</option>
@@ -109,44 +121,51 @@ export default function GeneratorPage({ apps }: Props) {
                     </div>
                 </div>
 
+                {/* Generate Button */}
                 <button
                     onClick={handleGenerate}
                     disabled={loading}
-                    className="w-full bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-bold py-5 rounded-xl transition-all transform hover:scale-[1.01] active:scale-100 shadow-lg text-lg"
                 >
-                    {loading ? 'Generating... (this may take 10-60s)' : 'Generate Test Cases'}
+                    {loading ? 'Generating Test Cases...' : 'Generate Test Cases'}
                 </button>
+
+                {/* Loading Spinner */}
                 {loading && (
-                    <div className="mt-12 flex flex-col items-center justify-center py-20">
+                    <div className="flex flex-col items-center justify-center py-20">
                         <div className="relative">
-                            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
-                            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-cyan-400 rounded-full animate-spin animation-delay-75"></div>
+                            <div className="w-32 h-32 border-8 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+                            <div className="absolute inset-0 w-32 h-32 border-8 border-transparent border-t-cyan-400 rounded-full animate-spin" style={{ animationDelay: '-0.75s' }}></div>
                         </div>
-                        <p className="mt-8 text-xl font-medium text-gray-700">
+                        <p className="mt-12 text-3xl font-semibold text-gray-700">
                             Generating detailed test cases...
                         </p>
-                        <p className="mt-2 text-sm text-gray-500">
-                            This may take 30–90 seconds depending on complexity
+                        <p className="mt-4 text-xl text-gray-500">
+                            This may take 30–90 seconds
                         </p>
                     </div>
                 )}
 
+                {/* Generated Result */}
                 {result && (
-                    <div className="mt-12">
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">Generated Test Cases</h3>
-                        <div className="bg-white rounded-xl shadow-lg p-8 prose prose-lg max-w-none">
+                    <div className="mt-16">
+                        <h3 className="text-3xl font-bold text-gray-800 mb-8 text-center lg:text-left">
+                            Generated Test Cases
+                        </h3>
+                        <div className="bg-gradient-to-b from-gray-50 to-white border-2 border-gray-200 rounded-2xl shadow-2xl p-8 lg:p-12 prose prose-xl max-w-none">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {result}
                             </ReactMarkdown>
                         </div>
 
-                        {/* Optional: Copy button */}
-                        <button
-                            onClick={() => navigator.clipboard.writeText(result)}
-                            className="mt-6 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition"
-                        >
-                            📋 Copy to Clipboard
-                        </button>
+                        <div className="mt-10 flex justify-center">
+                            <button
+                                onClick={() => navigator.clipboard.writeText(result)}
+                                className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-xl transition-all transform hover:scale-110 text-lg"
+                            >
+                                📋 Copy to Clipboard
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

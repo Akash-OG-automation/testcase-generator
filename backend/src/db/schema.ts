@@ -22,3 +22,7 @@ export function upsertSystemPrompt(appName: string, systemPrompt: string) {
     ON CONFLICT(app_name) DO UPDATE SET system_prompt = excluded.system_prompt
   `).run(appName, systemPrompt);
 }
+
+export function deletePrompt(appName: string) {
+  db.prepare('DELETE FROM app_prompts WHERE app_name = ?').run(appName);
+}

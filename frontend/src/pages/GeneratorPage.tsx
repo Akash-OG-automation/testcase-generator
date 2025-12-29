@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/GeneratorPage.tsx
 import { useState } from 'react';
-import axios from 'axios';
+import api from '../api';  // ← Uses our authenticated API instance
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -16,7 +17,7 @@ export default function GeneratorPage({ apps }: Props) {
   const [result, setResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  // Validation modal states
+  // Validation modal
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
 
@@ -37,20 +38,21 @@ export default function GeneratorPage({ apps }: Props) {
     setResult('');
 
     try {
-      const res = await axios.post('http://localhost:4000/api/generate', {
+      const res = await api.post('/api/generate', {
         userStory: userStory.trim(),
         appName,
         complexity,
         outputFormat,
       });
+
       setResult(res.data.data);
-    } catch (err: unknown) {
+    } catch (err: any) {
       let errorMessage = 'An unknown error occurred.';
 
-      if (err instanceof Error) {
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
         errorMessage = err.message;
-      } else if (axios.isAxiosError(err)) {
-        errorMessage = err.response?.data?.error || err.message || 'Network error';
       }
 
       setValidationMessage(`Generation failed: ${errorMessage}`);
@@ -185,7 +187,7 @@ export default function GeneratorPage({ apps }: Props) {
         </div>
       </div>
 
-      {/* Custom Validation / Error Modal */}
+      {/* Custom Validation Modal */}
       {isValidationModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">

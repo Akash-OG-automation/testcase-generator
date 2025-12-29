@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/pages/AdminPage.tsx
 import { useState } from 'react';
@@ -18,16 +19,19 @@ export default function AdminPage({ apps, setApps }: Props) {
   const [appToDelete, setAppToDelete] = useState<string | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [loadingPrompt, setLoadingPrompt] = useState(false);
 
   const handleSavePrompt = async () => {
     if (!newAppName.trim() || !systemPrompt.trim()) {
-      alert('Please enter both an application name and system prompt.');
+      setErrorMessage('Please enter both an application name and system prompt.');
+      setIsErrorModalOpen(true);
       return;
     }
 
     try {
-      await api.post('http://localhost:4000/api/admin/prompt', {
+      await api.post('/api/admin/prompt', {
         appName: newAppName.trim(),
         systemPrompt: systemPrompt.trim(),
       });
@@ -38,9 +42,10 @@ export default function AdminPage({ apps, setApps }: Props) {
       setApps([...apps, newAppName.trim()]);
       setNewAppName('');
       setSystemPrompt('');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      alert('Error saving prompt: ' + message);
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to save prompt.';
+      setErrorMessage(message);
+      setIsErrorModalOpen(true);
     }
   };
 
@@ -50,10 +55,11 @@ export default function AdminPage({ apps, setApps }: Props) {
     setIsEditModalOpen(true);
 
     try {
-      const res = await api.get(`http://localhost:4000/api/admin/prompt/${app}`);
+      const res = await api.get(`/api/admin/prompt/${app}`);
       setEditingPrompt(res.data.systemPrompt || '');
-    } catch (err) {
-      alert('Could not load prompt. It may be empty.');
+    } catch (err: any) {
+      setErrorMessage('Could not load prompt. Please try again.');
+      setIsErrorModalOpen(true);
       setEditingPrompt('');
     } finally {
       setLoadingPrompt(false);
@@ -62,12 +68,13 @@ export default function AdminPage({ apps, setApps }: Props) {
 
   const handleUpdatePrompt = async () => {
     if (!editingApp || !editingPrompt.trim()) {
-      alert('Please enter a system prompt.');
+      setErrorMessage('Please enter a system prompt.');
+      setIsErrorModalOpen(true);
       return;
     }
 
     try {
-      await api.put('http://localhost:4000/api/admin/prompt', {
+      await api.put('/api/admin/prompt', {
         appName: editingApp,
         systemPrompt: editingPrompt.trim(),
       });
@@ -78,9 +85,10 @@ export default function AdminPage({ apps, setApps }: Props) {
       setIsEditModalOpen(false);
       setEditingApp(null);
       setEditingPrompt('');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      alert('Error updating prompt: ' + message);
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to update prompt.';
+      setErrorMessage(message);
+      setIsErrorModalOpen(true);
     }
   };
 
@@ -93,7 +101,7 @@ export default function AdminPage({ apps, setApps }: Props) {
     if (!appToDelete) return;
 
     try {
-      await api.delete('http://localhost:4000/api/admin/prompt', { data: { appName: appToDelete } });
+      await api.delete('/api/admin/prompt', { data: { appName: appToDelete } });
 
       setSuccessMessage(`"${appToDelete}" has been permanently deleted.`);
       setIsSuccessModalOpen(true);
@@ -101,9 +109,10 @@ export default function AdminPage({ apps, setApps }: Props) {
       setApps(apps.filter((a) => a !== appToDelete));
       setIsDeleteModalOpen(false);
       setAppToDelete(null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      alert('Error deleting app: ' + message);
+    } catch (err: any) {
+      const message = err.response?.data?.error || 'Failed to delete app.';
+      setErrorMessage(message);
+      setIsErrorModalOpen(true);
     }
   };
 
@@ -288,6 +297,29 @@ export default function AdminPage({ apps, setApps }: Props) {
                 className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105"
               >
                 Great!
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Error Modal */}
+        {isErrorModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">
+              <div className="mb-8">
+                <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Oops!</h3>
+              <p className="text-gray-700 text-lg leading-relaxed mb-8">{errorMessage}</p>
+              <button
+                onClick={() => setIsErrorModalOpen(false)}
+                className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105"
+              >
+                Try Again
               </button>
             </div>
           </div>

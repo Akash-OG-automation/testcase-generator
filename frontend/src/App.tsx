@@ -16,6 +16,10 @@ function AppContent() {
   const { token, logout } = useContext(AuthContext);
   const [apps, setApps] = useState<string[]>([]);
 
+  // State for logout confirmation modal
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  // Fetch user's apps when logged in
   useEffect(() => {
     if (!token) {
       setApps([]);
@@ -40,9 +44,18 @@ function AppContent() {
     fetchApps();
   }, [token]);
 
+  const handleLogout = () => {
+    logout();
+    setIsLogoutModalOpen(false);
+  };
+
+  const openLogoutModal = () => {
+    setIsLogoutModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      {/* Navigation */}
+      {/* Navigation Bar */}
       <nav className="bg-white shadow-md sticky top-0 z-10 border-b border-gray-200">
         <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-20">
           <div className="flex justify-between items-center h-16">
@@ -75,8 +88,8 @@ function AppContent() {
                   Admin Panel
                 </NavLink>
                 <button
-                  onClick={logout}
-                  className="text-gray-700 hover:text-red-600 font-medium text-base sm:text-lg transition"
+                  onClick={openLogoutModal}
+                  className="text-red-600 hover:text-red-700 font-medium text-base sm:text-lg transition"
                 >
                   Logout
                 </button>
@@ -120,6 +133,39 @@ function AppContent() {
           © 2025 TestCase Generator • Built with ❤️ for better QA
         </div>
       </footer>
+
+      {/* Custom Logout Confirmation Modal */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">
+            <div className="mb-8">
+              <div className="mx-auto w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg className="w-16 h-16 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Log out?</h3>
+            <p className="text-gray-700 text-lg leading-relaxed mb-8">
+              Are you sure you want to log out of your account?
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl shadow-md transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105"
+              >
+                Yes, Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

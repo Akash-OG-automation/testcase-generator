@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/pages/AdminPage.tsx
 import { useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 interface Props {
   apps: string[];
@@ -27,7 +27,7 @@ export default function AdminPage({ apps, setApps }: Props) {
     }
 
     try {
-      await axios.post('http://localhost:4000/api/admin/prompt', {
+      await api.post('http://localhost:4000/api/admin/prompt', {
         appName: newAppName.trim(),
         systemPrompt: systemPrompt.trim(),
       });
@@ -50,7 +50,7 @@ export default function AdminPage({ apps, setApps }: Props) {
     setIsEditModalOpen(true);
 
     try {
-      const res = await axios.get(`http://localhost:4000/api/admin/prompt/${app}`);
+      const res = await api.get(`http://localhost:4000/api/admin/prompt/${app}`);
       setEditingPrompt(res.data.systemPrompt || '');
     } catch (err) {
       alert('Could not load prompt. It may be empty.');
@@ -67,7 +67,7 @@ export default function AdminPage({ apps, setApps }: Props) {
     }
 
     try {
-      await axios.put('http://localhost:4000/api/admin/prompt', {
+      await api.put('http://localhost:4000/api/admin/prompt', {
         appName: editingApp,
         systemPrompt: editingPrompt.trim(),
       });
@@ -93,7 +93,7 @@ export default function AdminPage({ apps, setApps }: Props) {
     if (!appToDelete) return;
 
     try {
-      await axios.delete('http://localhost:4000/api/admin/prompt', { data: { appName: appToDelete } });
+      await api.delete('http://localhost:4000/api/admin/prompt', { data: { appName: appToDelete } });
 
       setSuccessMessage(`"${appToDelete}" has been permanently deleted.`);
       setIsSuccessModalOpen(true);

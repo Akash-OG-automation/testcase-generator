@@ -10,15 +10,20 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Modal states
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setIsErrorModalOpen(false);
+    setIsSuccessModalOpen(false);
     setLoading(true);
 
     try {
@@ -29,19 +34,20 @@ export default function LoginPage() {
       });
 
       if (isRegister) {
-        setError('');
-        alert('Registration successful! You can now log in.');
+        setModalMessage('Registration successful! You can now log in.');
+        setIsSuccessModalOpen(true);
         setIsRegister(false);
         setPassword('');
       } else {
         login(response.data.token);
-        navigate('/'); // Redirect to Generator page after login
+        navigate('/');
       }
     } catch (err: any) {
       const message =
         err.response?.data?.error ||
-        (isRegister ? 'Registration failed' : 'Invalid username or password');
-      setError(message);
+        (isRegister ? 'Registration failed. Try a different username.' : 'Invalid username or password');
+      setModalMessage(message);
+      setIsErrorModalOpen(true);
     } finally {
       setLoading(false);
     }
@@ -59,12 +65,6 @@ export default function LoginPage() {
             {isRegister ? 'Register to start generating test cases' : 'Log in to access your applications'}
           </p>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-center">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -111,7 +111,8 @@ export default function LoginPage() {
               type="button"
               onClick={() => {
                 setIsRegister(!isRegister);
-                setError('');
+                setIsErrorModalOpen(false);
+                setIsSuccessModalOpen(false);
               }}
               className="ml-2 text-blue-600 hover:text-blue-700 font-medium underline"
             >
@@ -120,6 +121,52 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* Success Modal */}
+      {isSuccessModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">
+            <div className="mb-8">
+              <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-16 h-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Success!</h3>
+            <p className="text-gray-700 text-lg leading-relaxed mb-8">{modalMessage}</p>
+            <button
+              onClick={() => setIsSuccessModalOpen(false)}
+              className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105"
+            >
+              Great!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {isErrorModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">
+            <div className="mb-8">
+              <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Oops!</h3>
+            <p className="text-gray-700 text-lg leading-relaxed mb-8">{modalMessage}</p>
+            <button
+              onClick={() => setIsErrorModalOpen(false)}
+              className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

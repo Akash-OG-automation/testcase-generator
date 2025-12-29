@@ -1,61 +1,189 @@
 // backend/src/index.ts
 import express from 'express';
+import type { NextFunction } from 'express';
+import type { Request } from 'express';
+import type { Response } from 'express';
 import cors from 'cors';
-import { generateTestCases } from './langchain/generator.js';
-import { upsertSystemPrompt, getSystemPrompt, deletePrompt } from './db/schema.js';
-import Database from 'better-sqlite3';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import {
+  generateTestCases
+} from './langchain/generator.js';
+import {
+  upsertSystemPrompt,
+  getSystemPrompt,
+  deletePrompt,
+  getAllAppNames,
+  createUser,
+  getUserByUsername
+} from './db/schema.js';
 
-const db = new Database('app_prompts.db');
+// Extend Express Request to include user
+interface AuthRequest extends Request {
+  user?: { userId: number };
+}
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post('/api/generate', async (req, res) => {
-  const { userStory, appName, complexity, outputFormat } = req.body;
+// JWT Config
+const JWT_SECRET = 'your-super-secret-jwt-key-change-in-production-12345';
+const JWT_EXPIRES_IN = '7d';
+
+// Auth Middleware
+const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token.' });
+    }
+    req.user = { userId: decoded.userId };
+    next();
+  });
+};
+
+// Public: Register
+app.post('/api/register', (req: Request, res: Response) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
   try {
-    const result = await generateTestCases(userStory, appName, complexity, outputFormat);
+    const existingUser = getUserByUsername(username);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    const passwordHash = bcrypt.hashSync(password, 10);
+    const userId = createUser(username, passwordHash);
+
+    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    res.json({ success: true, token, message: 'Registration successful' });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Public: Login
+app.post('/api/login', (req: Request, res: Response) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const user = getUserByUsername(username);
+    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    res.json({ success: true, token, message: 'Login successful' });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Protected Routes
+app.post('/api/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
+  const { userStory, appName, complexity = 'medium' } = req.body;
+  const userId = req.user!.userId;
+
+  if (!appName || typeof appName !== 'string' || !userStory?.trim()) {
+    return res.status(400).json({ error: 'Valid app name and user story required' });
+  }
+
+  try {
+    const result = await generateTestCases(userStory.trim(), appName, complexity);
     res.json({ success: true, data: result });
   } catch (err) {
-    res.status(500).json({ success: false, error: (err as Error).message });
+    console.error('Generation error:', err);
+    res.status(500).json({ error: (err as Error).message || 'Generation failed' });
   }
 });
 
-app.get('/api/apps', (req, res) => {
-  // Fetch all app names
-  const apps = db.prepare('SELECT app_name FROM app_prompts').all() as { app_name: string }[];
-  res.json(apps.map(a => a.app_name));
+app.get('/api/apps', authenticateToken, (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const apps = getAllAppNames(userId);
+  res.json(apps);
 });
 
-app.post('/api/admin/prompt', (req, res) => {
+app.post('/api/admin/prompt', authenticateToken, (req: AuthRequest, res: Response) => {
   const { appName, systemPrompt } = req.body;
-  upsertSystemPrompt(appName, systemPrompt);
-  res.json({ success: true });
+  const userId = req.user!.userId;
+
+  if (!appName || typeof appName !== 'string' || !systemPrompt || typeof systemPrompt !== 'string') {
+    return res.status(400).json({ error: 'Valid app name and prompt required' });
+  }
+
+  try {
+    upsertSystemPrompt(appName.trim(), systemPrompt.trim(), userId);
+    res.json({ success: true, message: 'Prompt saved' });
+  } catch (err) {
+    res.status(500).json({ error: 'Save failed' });
+  }
 });
 
-// New: Update existing prompt
-app.put('/api/admin/prompt', (req, res) => {
+app.put('/api/admin/prompt', authenticateToken, (req: AuthRequest, res: Response) => {
   const { appName, systemPrompt } = req.body;
-  upsertSystemPrompt(appName, systemPrompt);  // Re-use upsert for update
-  res.json({ success: true });
+  const userId = req.user!.userId;
+
+  if (!appName || typeof appName !== 'string' || !systemPrompt || typeof systemPrompt !== 'string') {
+    return res.status(400).json({ error: 'Valid app name and prompt required' });
+  }
+
+  try {
+    upsertSystemPrompt(appName.trim(), systemPrompt.trim(), userId);
+    res.json({ success: true, message: 'Prompt updated' });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
 });
 
-// New: Delete app prompt
-app.delete('/api/admin/prompt', (req, res) => {
+app.delete('/api/admin/prompt', authenticateToken, (req: AuthRequest, res: Response) => {
   const { appName } = req.body;
-  deletePrompt(appName);
-  res.json({ success: true });
-});
+  const userId = req.user!.userId;
 
-app.get('/api/admin/prompt/:appName', (req, res) => {
-  const { appName } = req.params;
-  const row = db.prepare('SELECT system_prompt FROM app_prompts WHERE app_name = ?')
-    .get(appName) as { system_prompt: string } | undefined;
-  if (row) {
-    res.json({ systemPrompt: row.system_prompt });
-  } else {
-    res.status(404).json({ error: 'App not found' });
+  if (!appName || typeof appName !== 'string') {
+    return res.status(400).json({ error: 'Valid app name required' });
+  }
+
+  try {
+    deletePrompt(appName.trim(), userId);
+    res.json({ success: true, message: 'App deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Delete failed' });
   }
 });
 
-app.listen(4000, () => console.log('Backend running on http://localhost:4000'));
+app.get('/api/admin/prompt/:appName', authenticateToken, (req: AuthRequest, res: Response) => {
+  const appName = req.params.appName; // Now properly typed as string
+  const userId = req.user!.userId;
+
+  if (!appName) {
+    return res.status(400).json({ error: 'App name required' });
+  }
+
+  try {
+    const prompt = getSystemPrompt(appName, userId);
+    res.json({ systemPrompt: prompt });
+  } catch (err) {
+    res.status(404).json({ error: 'Prompt not found' });
+  }
+});
+
+app.listen(4000, () => {
+  console.log('Backend running on http://localhost:4000');
+});

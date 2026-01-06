@@ -16,6 +16,8 @@ export default function GeneratorPage({ apps }: Props) {
   const [outputFormat, setOutputFormat] = useState<'text' | 'excel' | 'pdf'>('text');
   const [result, setResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [isCopySuccessModalOpen, setIsCopySuccessModalOpen] = useState(false);
+  const [testCaseCount, setTestCaseCount] = useState<number>(8); // Default 8
 
   // Validation modal
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
@@ -43,6 +45,7 @@ export default function GeneratorPage({ apps }: Props) {
         appName,
         complexity,
         outputFormat,
+        testCaseCount,
       });
 
       setResult(res.data.data);
@@ -137,6 +140,31 @@ export default function GeneratorPage({ apps }: Props) {
             </div>
           </div>
 
+          {/* Test Case Count Slider */}
+          <div className="mt-8">
+            <label className="block text-lg font-medium text-gray-700 mb-4 text-center">
+              Number of Test Cases: <span className="text-blue-600 font-bold">{testCaseCount}</span>
+            </label>
+            <div className="px-8">
+              <input
+                type="range"
+                min="3"
+                max="20"
+                step="1"
+                value={testCaseCount}
+                onChange={(e) => setTestCaseCount(Number(e.target.value))}
+                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(testCaseCount - 3) / 17 * 100}%, #e5e7eb ${(testCaseCount - 3) / 17 * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <span>3 (Quick)</span>
+                <span>20 (Comprehensive)</span>
+              </div>
+            </div>
+          </div>
+
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
@@ -176,10 +204,15 @@ export default function GeneratorPage({ apps }: Props) {
 
               <div className="mt-10 flex justify-center">
                 <button
-                  onClick={() => navigator.clipboard.writeText(result)}
-                  className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-xl transition-all transform hover:scale-110 text-lg"
+                  onClick={() => {
+                    navigator.clipboard.writeText(result);
+                    // Trigger success modal
+                    setIsCopySuccessModalOpen(true);
+                  }}
+                  className="px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-xl transition-all transform hover:scale-110 text-lg relative overflow-hidden"
                 >
-                  📋 Copy to Clipboard
+                  <span className="relative z-10">📋 Copy to Clipboard</span>
+                  {/* Optional: add a flash effect on click */}
                 </button>
               </div>
             </div>
@@ -211,6 +244,32 @@ export default function GeneratorPage({ apps }: Props) {
           </div>
         </div>
       )}
+
+      {/* Copy Success Modal */}
+      {isCopySuccessModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">
+            <div className="mb-8">
+              <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-16 h-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Copied!</h3>
+            <p className="text-gray-700 text-lg mb-8">
+              Test cases have been copied to your clipboard.
+            </p>
+            <button
+              onClick={() => setIsCopySuccessModalOpen(false)}
+              className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105"
+            >
+              Great!
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

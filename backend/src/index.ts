@@ -1,8 +1,7 @@
 // backend/src/index.ts
 import express from 'express';
 import type { NextFunction } from 'express';
-import type { Request } from 'express';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
@@ -98,7 +97,13 @@ app.post('/api/login', (req: Request, res: Response) => {
 
 // Protected Routes
 app.post('/api/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
-  const { userStory, appName, complexity = 'medium' } = req.body;
+  const {
+    userStory,
+    appName,
+    complexity = 'medium',
+    testCaseCount = 8  // ← NEW: Default to 8 test cases
+  } = req.body;
+
   const userId = req.user!.userId;
 
   if (!appName || typeof appName !== 'string' || !userStory?.trim()) {
@@ -106,7 +111,13 @@ app.post('/api/generate', authenticateToken, async (req: AuthRequest, res: Respo
   }
 
   try {
-    const result = await generateTestCases(userStory.trim(), appName, complexity);
+    // Pass testCaseCount to generator
+    const result = await generateTestCases(
+      userStory.trim(),
+      appName,
+      complexity,
+      testCaseCount  // ← Sent to generator.ts
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     console.error('Generation error:', err);
@@ -169,7 +180,7 @@ app.delete('/api/admin/prompt', authenticateToken, (req: AuthRequest, res: Respo
 });
 
 app.get('/api/admin/prompt/:appName', authenticateToken, (req: AuthRequest, res: Response) => {
-  const appName = req.params.appName; // Now properly typed as string
+  const appName = req.params.appName;
   const userId = req.user!.userId;
 
   if (!appName) {

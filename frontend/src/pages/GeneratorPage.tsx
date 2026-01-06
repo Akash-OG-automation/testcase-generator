@@ -17,6 +17,7 @@ export default function GeneratorPage({ apps }: Props) {
   const [result, setResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [isCopySuccessModalOpen, setIsCopySuccessModalOpen] = useState(false);
+  const [testCaseCount, setTestCaseCount] = useState<number>(8); // Default 8
 
   // Validation modal
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
@@ -44,6 +45,7 @@ export default function GeneratorPage({ apps }: Props) {
         appName,
         complexity,
         outputFormat,
+        testCaseCount,
       });
 
       setResult(res.data.data);
@@ -135,6 +137,31 @@ export default function GeneratorPage({ apps }: Props) {
                 <option value="excel">Excel (.xlsx)</option>
                 <option value="pdf">PDF</option>
               </select>
+            </div>
+          </div>
+
+          {/* Test Case Count Slider */}
+          <div className="mt-8">
+            <label className="block text-lg font-medium text-gray-700 mb-4 text-center">
+              Number of Test Cases: <span className="text-blue-600 font-bold">{testCaseCount}</span>
+            </label>
+            <div className="px-8">
+              <input
+                type="range"
+                min="3"
+                max="20"
+                step="1"
+                value={testCaseCount}
+                onChange={(e) => setTestCaseCount(Number(e.target.value))}
+                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(testCaseCount - 3) / 17 * 100}%, #e5e7eb ${(testCaseCount - 3) / 17 * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <span>3 (Quick)</span>
+                <span>20 (Comprehensive)</span>
+              </div>
             </div>
           </div>
 
